@@ -1,0 +1,39 @@
+{
+  "name": "xandeum-pnode-analytics-backend",
+  "version": "1.0.0",
+  "description": "Production-ready analytics backend for Xandeum pNode Explorer",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "type-check": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts",
+    "verify-prpc": "tsx scripts/verify-prpc-source.ts",
+    "validate-api": "tsx scripts/validate-api-responses.ts"
+  },
+  "keywords": [
+    "xandeum",
+    "pnode",
+    "analytics",
+    "blockchain"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@fastify/cors": "^8.4.0",
+    "fastify": "^4.24.3",
+    "ioredis": "^5.8.2",
+    "xandeum-prpc": "^0.1.6",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@jest/globals": "^29.7.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
