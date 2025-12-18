@@ -167,10 +167,22 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
   
   // Get raw pods data directly from pRPC (matching official website calculation)
   const rawPods = await getRawPodsForAnalytics();
+  
+  // Calculate active pods (online) from raw pRPC data
+  const ONLINE_THRESHOLD_SECONDS = Number(process.env.ONLINE_THRESHOLD_SECONDS) || 300;
+  const thresholdTime = Math.floor(Date.now() / 1000) - ONLINE_THRESHOLD_SECONDS;
+  const activePods = rawPods.filter(pod => pod.last_seen_timestamp >= thresholdTime).length;
+  const totalPods = rawPods.length;
 
   const totalPNodes = nodes.length;
   const onlineNodes = nodes.filter((n) => n.status === "online");
   const onlinePNodes = onlineNodes.length;
+  
+  // Log pod counts for debugging
+  console.log(`📊 Pod Counts: Total=${totalPods}, Active=${activePods}, Normalized Nodes=${totalPNodes}, Online Nodes=${onlinePNodes}`);
+  if (totalPods !== 223) {
+    console.log(`⚠️  Pod count mismatch: Expected 223 (official), Got ${totalPods} (diff: ${223 - totalPods})`);
+  }
   const onlinePercentage = totalPNodes > 0 
     ? Math.round((onlinePNodes / totalPNodes) * 100 * 100) / 100 
     : 0;
@@ -187,37 +199,12 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
   
   // Calculate total committed storage using RAW pRPC data (matching official website)
   // Official website uses raw storage_committed from pRPC directly, not normalized data
-  let nodesWithCommitted = 0;
-  let nodesWithoutCommitted = 0;
-  let totalStorageCapacityFromNodes = 0;
-  let totalStorageCapacityFromRawPods = 0;
-  
-  // Method 1: From normalized nodes
-  totalStorageCapacityFromNodes = nodes.reduce((sum, n) => {
-    if (n.storageCommitted && n.storageCommitted > 0) {
-      nodesWithCommitted++;
-      return sum + n.storageCommitted;
-    } else {
-      nodesWithoutCommitted++;
-      return sum;
-    }
-  }, 0);
-  
-  // Method 2: From raw pods (official website method)
-  let rawPodsWithCommitted = 0;
-  let rawPodsWithoutCommitted = 0;
-  totalStorageCapacityFromRawPods = rawPods.reduce((sum, pod) => {
+  const totalStorageCapacity = rawPods.reduce((sum, pod) => {
     if (pod.storage_committed && pod.storage_committed > 0) {
-      rawPodsWithCommitted++;
       return sum + pod.storage_committed;
-    } else {
-      rawPodsWithoutCommitted++;
-      return sum;
     }
+    return sum;
   }, 0);
-  
-  // Use raw pods calculation (matching official website)
-  const totalStorageCapacity = totalStorageCapacityFromRawPods;
   
   const totalStorageUsedTB = totalStorageUsed / (1024 ** 4);
   const totalStorageCapacityTB = totalStorageCapacity / (1024 ** 4);
@@ -244,6 +231,8 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
     totalPNodes,
     onlinePNodes,
     onlinePercentage,
+    totalPods,
+    activePods,
     averageUptime,
     totalStorageUsed,
     totalStorageCapacity,

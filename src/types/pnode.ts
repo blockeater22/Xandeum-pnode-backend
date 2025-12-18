@@ -27,6 +27,8 @@ export interface AnalyticsSummary {
   totalPNodes: number;
   onlinePNodes: number;
   onlinePercentage: number;
+  totalPods: number; // Total pods from raw pRPC data (matching official website)
+  activePods: number; // Active/online pods from raw pRPC data
   averageUptime: number;
   totalStorageUsed: number;
   totalStorageCapacity: number;
