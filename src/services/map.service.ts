@@ -38,7 +38,6 @@ export async function getMapNodes(): Promise<MapNode[]> {
     // Only batch if we have many uncached nodes to respect API rate limits
     const BATCH_SIZE = 20; // Larger batch size since most are cached
     const GEO_TIMEOUT_MS = 2000; // Reduced timeout since cached lookups are instant
-    const MAX_CONCURRENT_API_CALLS = 15; // Limit concurrent API calls (not cached)
 
     const mapNodes: MapNode[] = [];
     
