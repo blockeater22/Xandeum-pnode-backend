@@ -164,6 +164,9 @@ export async function getCachedNodeMetrics(): Promise<NodeMetrics[]> {
 
 export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
   const nodes = await getAllPNodes();
+  
+  // Get raw pods data directly from pRPC (matching official website calculation)
+  const rawPods = await getRawPodsForAnalytics();
 
   const totalPNodes = nodes.length;
   const onlineNodes = nodes.filter((n) => n.status === "online");
@@ -174,20 +177,51 @@ export async function getAnalyticsSummary(): Promise<AnalyticsSummary> {
 
   const uptimes = onlineNodes.map((n) => n.uptime).filter((u) => u > 0);
   const averageUptime = uptimes.length > 0
-    ? Math.round((uptimes.reduce((sum, u) => sum + u, 0) / uptimes.length) * 100) / 100
+    ? Math.round((uptimes.reduce((sum, u) => sum + u, 0) / uptimes.length) * 100) / 100 
     : 0;
 
-  const totalStorageUsed = onlineNodes.reduce((sum, n) => {
+  // Calculate storage for ALL nodes (not just online)
+  const totalStorageUsed = nodes.reduce((sum, n) => {
     return sum + (n.storageUsed || 0);
   }, 0);
   
-  const totalStorageCapacity = onlineNodes.reduce((sum, n) => {
-    const nodeStorage = n.storageCommitted || n.storageTotal || 0;
-    return sum + nodeStorage;
+  // Calculate total committed storage using RAW pRPC data (matching official website)
+  // Official website uses raw storage_committed from pRPC directly, not normalized data
+  let nodesWithCommitted = 0;
+  let nodesWithoutCommitted = 0;
+  let totalStorageCapacityFromNodes = 0;
+  let totalStorageCapacityFromRawPods = 0;
+  
+  // Method 1: From normalized nodes
+  totalStorageCapacityFromNodes = nodes.reduce((sum, n) => {
+    if (n.storageCommitted && n.storageCommitted > 0) {
+      nodesWithCommitted++;
+      return sum + n.storageCommitted;
+    } else {
+      nodesWithoutCommitted++;
+      return sum;
+    }
   }, 0);
+  
+  // Method 2: From raw pods (official website method)
+  let rawPodsWithCommitted = 0;
+  let rawPodsWithoutCommitted = 0;
+  totalStorageCapacityFromRawPods = rawPods.reduce((sum, pod) => {
+    if (pod.storage_committed && pod.storage_committed > 0) {
+      rawPodsWithCommitted++;
+      return sum + pod.storage_committed;
+    } else {
+      rawPodsWithoutCommitted++;
+      return sum;
+    }
+  }, 0);
+  
+  // Use raw pods calculation (matching official website)
+  const totalStorageCapacity = totalStorageCapacityFromRawPods;
   
   const totalStorageUsedTB = totalStorageUsed / (1024 ** 4);
   const totalStorageCapacityTB = totalStorageCapacity / (1024 ** 4);
+
   const versionMap = new Map<string, number>();
   for (const node of nodes) {
     const version = node.version || "unknown";
